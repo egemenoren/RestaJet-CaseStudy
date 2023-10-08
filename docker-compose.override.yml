@@ -1,0 +1,19 @@
+version: '3.4'
+
+
+services:
+  casestudydb:
+    container_name: casestudydb
+    restart: always
+    ports:
+        - "1453:1433"
+    environment:
+            MSSQL_SA_PASSWORD: "S3cur3P@Ss"
+            ACCEPT_EULA: "Y"
+  casestudy.presentation:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5000:80"
+    depends_on:
+        - casestudydb
