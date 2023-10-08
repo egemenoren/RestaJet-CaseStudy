@@ -15,10 +15,12 @@ namespace CaseStudy.Core.Services.Concrete
     {
         private readonly ICartItemRepository _cartItemRepository;
         private readonly ICartRepository _cartRepository;
-        public CartItemService(ICartItemRepository cartItemRepository, ICartRepository cartRepository) : base(cartItemRepository)
+        private readonly IProductService _productService;
+        public CartItemService(ICartItemRepository cartItemRepository, ICartRepository cartRepository, IProductService productService) : base(cartItemRepository)
         {
             _cartItemRepository = cartItemRepository;
             _cartRepository = cartRepository;
+            _productService = productService;
         }
         public async Task<DataResultModel<CartItem>> Create(CartItem entity,string token, CancellationToken cancellationToken = default)
         {
@@ -28,6 +30,8 @@ namespace CaseStudy.Core.Services.Concrete
                 return new DataResultModel<CartItem>(false);
             if(await CheckIfItemIsAlreadyIn(cart,entity.ProductId))
                 return new DataResultModel<CartItem>(false,"Product already exists in Cart",null);
+            if (!(await CheckItemExistsInSource(entity.ProductId, cancellationToken)))
+                return new DataResultModel<CartItem>(false, "Product you're trying to add does not exist.", null);
             entity.CartId = cart.Id;
             entity.Quantity = 1;
             return await base.Create(entity, cancellationToken);
@@ -54,6 +58,11 @@ namespace CaseStudy.Core.Services.Concrete
         private async Task<bool> CheckIfItemIsAlreadyIn(Cart cart, int productId)
         {
             return (await _cartItemRepository.Get(x=>x.ProductId == productId && x.CartId == cart.Id)).Any();
+        }
+        private async Task<bool> CheckItemExistsInSource(int productId,CancellationToken cancellationToken = default)
+        {
+            var result = (await _productService.GetById(productId, cancellationToken)).Data != null;
+            return result;
         }
     }
 }
